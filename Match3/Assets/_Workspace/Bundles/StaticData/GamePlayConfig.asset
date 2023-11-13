@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a3dd10dd1b24153ad7f4bd3995a08c0, type: 3}
+  m_Name: GamePlayConfig
+  m_EditorClassIdentifier: 
+  <MaxColorsCount>k__BackingField: 10
+  <MinRandomWeight>k__BackingField: 2
+  <MaxRandomWeight>k__BackingField: 4
+  <StartColorsCount>k__BackingField: 3
+  <StepsPerColor>k__BackingField: 3
+  <MatchesToDeleteColor>k__BackingField: 21
