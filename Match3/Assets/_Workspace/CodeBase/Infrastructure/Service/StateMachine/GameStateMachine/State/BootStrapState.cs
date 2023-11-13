@@ -26,7 +26,7 @@ namespace _Workspace.CodeBase.Infrastructure.Service.StateMachine.GameStateMachi
 
         public async UniTask Enter()
         {
-            SetVsyncFrameRate();
+            UnlockFrameRate();
             await InitializeServices();
             _gameStateMachine.Enter<GameLoadingState>().Forget();
         }
@@ -38,8 +38,8 @@ namespace _Workspace.CodeBase.Infrastructure.Service.StateMachine.GameStateMachi
             await _curtainProxy.InitializeAsync();
         }
 
-        private void SetVsyncFrameRate()
-            => Application.targetFrameRate = 0;
+        private void UnlockFrameRate()
+            => Application.targetFrameRate = 120;
 
         public UniTask Exit()
             => default;
