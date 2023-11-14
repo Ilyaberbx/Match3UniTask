@@ -1,4 +1,5 @@
 ﻿using _Workspace.CodeBase.GamePlay.Logic.Service.Color.Data;
+using _Workspace.CodeBase.GamePlay.Progress;
 using UnityEngine;
 
 namespace _Workspace.CodeBase.GamePlay.Logic.Service.Color.Factory
@@ -15,6 +16,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Color.Factory
         }
         public ColorValueData CreateColorWeight() 
             => new(RandomValue(_minWeight, _maxWeight));
+
 
         private int RandomValue(int min, int max) 
             => Random.Range(min, max + 1);

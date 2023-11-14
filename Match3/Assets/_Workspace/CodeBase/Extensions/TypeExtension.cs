@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Extensions
+namespace _Workspace.CodeBase.Extensions
 {
     public static class TypeExtension
     {

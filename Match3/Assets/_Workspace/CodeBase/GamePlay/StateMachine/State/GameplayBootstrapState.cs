@@ -54,14 +54,14 @@ namespace _Workspace.CodeBase.GamePlay.StateMachine.State
         public async UniTask Enter()
         {
             _eventBus.Subscribe(_matchGame);
-
+            
             await _rootFactory.CreateUIRoot();
 
-            await InitializeMatchSystem();
+            InitializeMatchSystem().Forget();
 
             InformProgressReaders(_progressService.MatchProgress);
-
-            await _curtain.Hide();
+            
+            _curtain.Hide().Forget();
             
             _gameplayStateMachine.Enter<GameLoopState>().Forget();
         }

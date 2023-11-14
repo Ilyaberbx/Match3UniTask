@@ -1,4 +1,5 @@
-﻿using _Workspace.CodeBase.Extensions;
+﻿using System;
+using _Workspace.CodeBase.Extensions;
 using _Workspace.CodeBase.GamePlay.Assets;
 using _Workspace.CodeBase.GamePlay.Logic;
 using _Workspace.CodeBase.GamePlay.Logic.Extensions;
@@ -12,19 +13,27 @@ namespace _Workspace.CodeBase.GamePlay.Factory
 {
     public class MatchFactory : IBoardFactory, IItemsFactory, ITilesFactory
     {
+        public const float ReferencedResolutionRationConst = 1.77f;
+
+        private Camera _camera;
+
         private readonly IPrefabFactoryAsync _prefabFactory;
         private MatchBoard _createMatchBoard;
-        private Camera _camera;
+
         private Vector3 _startTilesPosition;
         private float _tileCoefficient;
+        private float _tileScaleCoefficient;
 
-        public MatchFactory(IPrefabFactoryAsync prefabFactory) 
+        public MatchFactory(IPrefabFactoryAsync prefabFactory)
             => _prefabFactory = prefabFactory;
 
         public void Initialize(float width, float height)
         {
             _camera = Camera.main;
             _tileCoefficient = CalculateTileCoefficient(width);
+            _tileScaleCoefficient = CalculateTileScaleCoefficient();
+
+            Debug.Log(_tileScaleCoefficient);
             _startTilesPosition = MatchStartPosition(height);
         }
 
@@ -47,19 +56,28 @@ namespace _Workspace.CodeBase.GamePlay.Factory
             return _createMatchBoard;
         }
 
-        public async UniTask<TileItem> CreateItem(int x, int y)
+        public async UniTask<TileItem> CreateItem()
         {
             TileItem item = await InstantiateRegistered<TileItem>(GamePlayAssetsAddress.TileItem);
-            item.SetPosition(x, y);
             return item;
         }
 
-        public async UniTask<Tile> CreateTile(float x, float y, Transform container)
+        public async UniTask<Tile> CreateTile(int x, int y, Transform container)
         {
             Tile tile = await InstantiateRegistered<Tile>(GamePlayAssetsAddress.Tile);
-            tile.transform.localPosition = _startTilesPosition.AddX(x * _tileCoefficient).AddY(y * -_tileCoefficient);
+            Transform transform = tile.transform;
+            transform.localScale *= _tileScaleCoefficient;
+            transform.localPosition = _startTilesPosition.AddX(x * _tileCoefficient).AddY(y * -_tileCoefficient);
             tile.transform.SetParent(container, false);
+
+            tile.SetPosition(x, y);
             return tile;
+        }
+
+        private float CalculateTileScaleCoefficient()
+        {
+            float screenAspectRatio = (float)Screen.height / Screen.width;
+            return ReferencedResolutionRationConst / (float)Math.Round(screenAspectRatio, 2);
         }
 
         private async UniTask<T> InstantiateRegistered<T>(string address) where T : Component

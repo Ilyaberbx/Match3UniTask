@@ -3,8 +3,15 @@
     [System.Serializable]
     public class TileItemData
     {
-        public int X;
-        public int Y;
         public ColorData ColorData;
+
+        public TileItemData()
+        {
+        }
+
+        public TileItemData(ColorData colorData)
+        {
+            ColorData = colorData;
+        }
     }
 }

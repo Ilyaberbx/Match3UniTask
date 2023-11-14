@@ -1,4 +1,6 @@
-﻿using _Workspace.CodeBase.GamePlay.Logic.Extensions;
+﻿using System;
+using System.Threading.Tasks;
+using _Workspace.CodeBase.GamePlay.Logic.Extensions;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
@@ -8,19 +10,35 @@ namespace _Workspace.CodeBase.GamePlay.Logic
 {
     public class Tile : MonoBehaviour
     {
-        public TileItem Item => _item;
-        private TileItem _item;
+        public TileItem Item { get; private set; }
+        public int _x;
+        public int _y;
 
-        public async UniTask SetTileItem(TileItem value)
+        public void SetItem(TileItem value)
         {
-            if (value == null)
-                return;
+            Item = value ? value : throw new NullReferenceException();
+            Item.SetPosition(_x,_y);
+            ApplyItemToTile();
+        }
 
-            _item = value;
-            Transform itemTransform = _item.transform;
+        public void SwapItems(Tile tile)
+        {
+            TileItem swapItem = tile.Item;
+            tile.SetItem(Item);
+            SetItem(swapItem);
+        }
+
+        public void SetPosition(int x, int y)
+        {
+            _x = x;
+            _y = y;
+        }
+
+        private void ApplyItemToTile()
+        {
+            Transform itemTransform = Item.transform;
             itemTransform.SetParent(transform, false);
-            await itemTransform.DOLocalMove(zero.AddZ(-1), 1f)
-                .ToUniTask();
+            itemTransform.localPosition = zero.AddZ(-1);
         }
     }
 }

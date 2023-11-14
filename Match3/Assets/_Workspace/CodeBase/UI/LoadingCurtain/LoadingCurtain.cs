@@ -18,11 +18,11 @@ namespace _Workspace.CodeBase.UI.LoadingCurtain
         }
 
         public async UniTask Show() =>
-            await _canvasGroup.DOFade(1, 3f)
+            await _canvasGroup.DOFade(1, 0.8f)
                 .SetEase(_ease).WithCancellation(_cts.Token);
 
         public async UniTask Hide() =>
-            await _canvasGroup.DOFade(0, 3f)
+            await _canvasGroup.DOFade(0, 0.8f)
                 .SetEase(_ease)
                 .WithCancellation(_cts.Token);
 

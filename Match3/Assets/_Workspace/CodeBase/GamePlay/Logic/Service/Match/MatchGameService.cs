@@ -12,6 +12,8 @@ using _Workspace.CodeBase.Service.EventBus;
 using _Workspace.CodeBase.Service.StaticData;
 using Cysharp.Threading.Tasks;
 using ModestTree;
+using Unity.VisualScripting;
+using UnityEngine;
 
 namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
 {
@@ -26,6 +28,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
         private readonly IEventBusService _eventBus;
         private readonly IStaticDataService _staticData;
         private IMatchConfig _matchConfig;
+
         private Dictionary<UnityEngine.Color, int> _collectedColorsMap;
 
         private MatchBoard _board;
@@ -47,8 +50,8 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
         public async UniTask InitializeAsync(MatchBoard board)
         {
             _board = board;
-            await _board.InitializeAsync();
             _matchConfig = _staticData.GetMatchConfig();
+            await _board.InitializeAsync();
         }
 
         public async void HandleTileItemClicked(TileItem clickedItem)
@@ -56,14 +59,14 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
             if (_isMatching)
                 return;
 
-            List<TileItem> items = new List<TileItem>();
+            HashSet<TileItem> items = new HashSet<TileItem>();
             UnityEngine.Color color = clickedItem.GetColor();
 
             items = CollectSameColorNeighbourItems(clickedItem, color);
 
-            if (!IsEnoughToDissolve(items))
+            if (!IsEnoughToDissolve(items.ToList()))
             {
-                DeselectItems(items);
+                ResetItems(items.ToList());
                 return;
             }
 
@@ -77,7 +80,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
             await MatchLogic(color, items);
         }
 
-        private async Task MatchLogic(UnityEngine.Color color, List<TileItem> items)
+        private async Task MatchLogic(UnityEngine.Color color, HashSet<TileItem> items)
         {
             _isMatching = true;
 
@@ -89,35 +92,46 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
                 _colorService.RemoveColor(color);
 
                 List<TileItem> allColorItems = _board.GetAllItemsByColor(color);
-                items.AddRange(allColorItems.Where(item => !item.Selected()));
+                TileItem[] unSelectedColorItems = allColorItems.Where(item => !item.Selected()).ToArray();
+                
+                foreach (TileItem item in unSelectedColorItems) 
+                    item.Select();
+
+                items.AddRange(unSelectedColorItems);
 
                 await DissolveItemsInformed(items);
             }
 
-            if (_board.CanContinueMatching())
+            if (!_colorService.HasColors())
             {
-                _isMatching = false;
-                await UpdateItemsSaved(items);
+                RaiseGameOver();
+                return;
             }
+
+            await UpdateItemsSaved(items);
+
+            if (_board.CanContinueMatching())
+                _isMatching = false;
             else
                 RaiseGameOver();
         }
 
-        private async Task UpdateItemsSaved(List<TileItem> items)
+        private async UniTask UpdateItemsSaved(HashSet<TileItem> items)
         {
-            await UpdateItems(items);
+            _board.UpdateItemsColor(items.ToList());
+            Dictionary<TileItem, float> crumbledItemsPositionMap = CrumbleItems();
+            await MoveToFromPositionAsync(crumbledItemsPositionMap);
+            ResetItems(items.ToList());
+            await UpdateItems(items.ToList());
             RaiseSaveProgress();
         }
 
-        private async Task DissolveItemsInformed(List<TileItem> items)
-        {
-            await InformBoardUpdated();
-            await DissolveItems(items);
-        }
+        private async UniTask MoveToFromPositionAsync(Dictionary<TileItem, float> itemsFromPosition) 
+            => await _board.MoveItemsFromPositionAsync(itemsFromPosition);
 
-        private List<TileItem> CollectSameColorNeighbourItems(TileItem clickedItem, UnityEngine.Color itemColor)
+        private HashSet<TileItem> CollectSameColorNeighbourItems(TileItem clickedItem, UnityEngine.Color itemColor)
         {
-            List<TileItem> items = new List<TileItem>();
+            HashSet<TileItem> items = new HashSet<TileItem>();
             _board.CollectSameColorNeighbourItems(clickedItem.GetX(), clickedItem.GetY(), itemColor, ref items);
             return items;
         }
@@ -146,16 +160,25 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Match
             _collectedColorsMap.Add(color, count);
         }
 
-        private void DeselectItems(List<TileItem> items)
+        private void ResetItems(List<TileItem> items)
         {
             foreach (TileItem item in items)
-                item.Deselect();
+                item.Reset();
         }
 
-        private async UniTask UpdateItems(List<TileItem> items)
-            => await _board.UpdateItems(items);
+        private async UniTask UpdateItems(List<TileItem> items) 
+            => await _board.UpdateBoard(items);
 
-        private async UniTask DissolveItems(List<TileItem> items)
+        private Dictionary<TileItem, float> CrumbleItems()
+            => _board.CrumbleItems();
+
+        private async UniTask DissolveItemsInformed(HashSet<TileItem> items)
+        {
+            await InformBoardUpdated();
+            await DissolveItems(items);
+        }
+
+        private async UniTask DissolveItems(HashSet<TileItem> items)
         {
             List<UniTask> tasks = Enumerable.Select(items, item => item.Dissolve()).ToList();
             await UniTask.WhenAll(tasks);

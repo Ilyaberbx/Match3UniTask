@@ -22,8 +22,8 @@ namespace _Workspace.CodeBase.UI.Match
         public async UniTask UpdateMatchStats(Dictionary<Color, int> colorsMap, int steps)
         {
             _stepsCountText.text = steps.ToString();
+            
             ClearUp();
-
             foreach (KeyValuePair<Color, int> colorPair in colorsMap)
             {
                 MatchView view = await _viewFactory.CreateMatchView(_vlg);

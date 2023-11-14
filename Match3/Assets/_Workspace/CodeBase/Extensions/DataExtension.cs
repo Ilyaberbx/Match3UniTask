@@ -23,15 +23,8 @@ namespace _Workspace.CodeBase.Extensions
         private static ColorData ToColorData(this Color color)
             => new(color.r, color.g, color.b);
 
-        public static TileItemData ToItemData(this TileItem item)
-        {
-            return new TileItemData()
-            {
-                ColorData = item.GetColor().ToColorData(),
-                X = item.GetX(),
-                Y = item.GetY()
-            };
-        }
+        public static TileItemData ToItemData(this TileItem item) 
+            => new(colorData: item.GetColor().ToColorData());
 
         public static Dictionary<Color, int> ToMap(this List<ColorValueData> colorValuesData)
         {
@@ -42,6 +35,7 @@ namespace _Workspace.CodeBase.Extensions
 
             return map;
         }
+
 
         public static List<ColorValueData> ToDataList(this Dictionary<Color, int> map)
         {

@@ -7,6 +7,6 @@ namespace _Workspace.CodeBase.GamePlay.Factory
     public interface ITilesFactory
     {
         void Initialize(float width, float height);
-        UniTask<Tile> CreateTile(float x, float y, Transform container);
+        UniTask<Tile> CreateTile(int x, int y, Transform container);
     }
 }

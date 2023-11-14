@@ -14,12 +14,13 @@ namespace _Workspace.CodeBase.Infrastructure.Service.StateMachine.GameStateMachi
         private readonly IAssetsProvider _assets;
         private readonly ISceneLoader _sceneLoader;
 
-        public GamePlayState(ILoadingCurtain curtain,IAssetsProvider assets, ISceneLoader sceneLoader)
+        public GamePlayState(ILoadingCurtain curtain, IAssetsProvider assets, ISceneLoader sceneLoader)
         {
             _curtain = curtain;
             _assets = assets;
             _sceneLoader = sceneLoader;
         }
+
         public async UniTask Enter()
         {
             await _curtain.Show();
@@ -28,7 +29,7 @@ namespace _Workspace.CodeBase.Infrastructure.Service.StateMachine.GameStateMachi
             await _sceneLoader.LoadAsync(InfrastructureAssetsAddress.GamePlayScene, LoadSceneMode.Single);
         }
 
-        public async UniTask Exit() 
+        public async UniTask Exit()
             => await _assets.ReleaseAssetsByLabel(AssetsLabel.GamePlayState);
     }
 }

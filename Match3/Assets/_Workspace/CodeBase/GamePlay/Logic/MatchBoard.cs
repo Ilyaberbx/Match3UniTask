@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using _Workspace.CodeBase.Extensions;
 using _Workspace.CodeBase.GamePlay.Factory;
 using _Workspace.CodeBase.GamePlay.Logic.Service.Color;
@@ -15,8 +17,9 @@ namespace _Workspace.CodeBase.GamePlay.Logic
     public class MatchBoard : MonoBehaviour, ISavedProgressReader<MatchGameProgress>,
         ISavedProgressWriter<MatchGameProgress>
     {
-        [Header("Board settings")] 
-        [SerializeField] private int _width;
+        [Header("Board settings")] [SerializeField]
+        private int _width;
+
         [SerializeField] private int _height;
 
         private Tile[,] _tiles;
@@ -59,33 +62,41 @@ namespace _Workspace.CodeBase.GamePlay.Logic
             return tiles;
         }
 
+        private List<TileItem> GetAllItems()
+        {
+            List<TileItem> items = new List<TileItem>();
+
+            foreach (Tile tile in _tiles)
+                items.Add(tile.Item);
+
+            return items;
+        }
 
         private async UniTask InitializeItems()
         {
-            List<UniTask> tasks = new List<UniTask>();
-
             for (int i = 0; i < _height; i++)
             {
-                for (int j = 0; j < _width; j++)
-                    tasks.Add(_tiles[j, i].SetTileItem(await _itemsFactory.CreateItem(j, i)));
+                for (int j = 0; j < _width; j++) _tiles[j, i].SetItem(await _itemsFactory.CreateItem());
             }
-
-            await UniTask.WhenAll(tasks);
         }
 
-        public async UniTask UpdateItems(List<TileItem> items)
+        public void UpdateItemsColor(List<TileItem> items)
+        {
+            foreach (TileItem item in items)
+                item.UpdateContent(_colorProvider.GetRandomColor());
+        }
+
+        public async UniTask UpdateBoard(List<TileItem> items)
         {
             List<UniTask> tasks = new List<UniTask>();
 
-            tasks.AddRange(
-                Enumerable
-                    .Select(items, item =>
-                        item.UpdateContent(_colorProvider.GetRandomColor())));
+            foreach (TileItem item in items)
+                tasks.Add(item.Appear());
 
             await UniTask.WhenAll(tasks);
         }
 
-        public void CollectSameColorNeighbourItems(int x, int y, Color color, ref List<TileItem> items)
+        public void CollectSameColorNeighbourItems(int x, int y, Color color, ref HashSet<TileItem> items)
         {
             CollectIfValid(x - 1, y, color, ref items);
             CollectIfValid(x + 1, y, color, ref items);
@@ -93,7 +104,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic
             CollectIfValid(x, y + 1, color, ref items);
         }
 
-        private void CollectIfValid(int x, int y, Color color, ref List<TileItem> items)
+        private void CollectIfValid(int x, int y, Color color, ref HashSet<TileItem> items)
         {
             if (IsValidPosition(x, y))
                 CollectSameColorItems(x, y, color, ref items);
@@ -111,7 +122,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic
         private bool IsValidWidth(int x)
             => x >= 0 && x < _width;
 
-        private void CollectSameColorItems(int x, int y, Color color, ref List<TileItem> items)
+        private void CollectSameColorItems(int x, int y, Color color, ref HashSet<TileItem> items)
         {
             if (!TryCollectItem(x, y, color, out TileItem item)) return;
 
@@ -121,22 +132,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic
         }
 
         public List<TileItem> GetAllItemsByColor(Color color)
-        {
-            List<TileItem> items = new List<TileItem>();
-
-            for (int i = 0; i < _height; i++)
-            {
-                for (int j = 0; j < _width; j++)
-                {
-                    TileItem item = _tiles[j, i].Item;
-
-                    if (item.GetColor() == color)
-                        items.Add(item);
-                }
-            }
-
-            return items;
-        }
+            => GetAllItems().Where(item => item.GetColor() == color).ToList();
 
         private bool TryCollectItem(int x, int y, Color color, out TileItem item)
         {
@@ -154,15 +150,12 @@ namespace _Workspace.CodeBase.GamePlay.Logic
 
         public bool CanContinueMatching()
         {
-            if (!_colorProvider.HasColors())
-                return false;
-
             for (int i = 0; i < _height; i++)
             {
                 for (int j = 0; j < _width; j++)
                 {
                     TileItem item = _tiles[j, i].Item;
-                    List<TileItem> items = new List<TileItem>();
+                    HashSet<TileItem> items = new HashSet<TileItem>();
 
                     CollectSameColorNeighbourItems(j, i, item.GetColor(), ref items);
 
@@ -180,12 +173,72 @@ namespace _Workspace.CodeBase.GamePlay.Logic
         }
 
 
+        public Dictionary<TileItem, float> CrumbleItems()
+        {
+            Dictionary<TileItem, float> crumbledItemsMap = new Dictionary<TileItem, float>();
+
+            for (int i = 0; i < _width; i++)
+            {
+                for (int j = 1; j < _height + 1; j++)
+                {
+                    Debug.Log("X: " + i + " Y: " + j);
+                    TileItem item = _tiles[i, _height - j].Item;
+                    float itemPositionY = item.transform.position.y;
+
+                    if (item.Selected())
+                        continue;
+
+                    if (!IsLessThenHeight(item.GetY() + 1))
+                        continue;
+
+                    if (!TryFindBottomItem(true, i, item.GetY(), out TileItem bottomItem)) continue;
+
+                    float bottomItemPositionY = item.transform.position.y;
+
+                    if (crumbledItemsMap.ContainsKey(bottomItem))
+                        crumbledItemsMap[bottomItem] = itemPositionY;
+                    else
+                        crumbledItemsMap.Add(bottomItem, itemPositionY);
+
+
+                    if (crumbledItemsMap.ContainsKey(item))
+                        crumbledItemsMap[item] = bottomItemPositionY;
+                    else
+                        crumbledItemsMap.Add(item, bottomItemPositionY);
+
+                    _tiles[bottomItem.GetX(), bottomItem.GetY()]
+                        .SwapItems(_tiles[i, _height - j]);
+                }
+            }
+
+            return crumbledItemsMap;
+        }
+
+        private bool TryFindBottomItem(bool isSelected, int x, int rootY, out TileItem item)
+        {
+            item = null;
+
+            int bottomTilesLenght = _height - rootY;
+
+            for (int i = 1; i < bottomTilesLenght; i++)
+            {
+                TileItem tempItem = _tiles[x, _height - i].Item;
+
+                if (tempItem.Selected() != isSelected) continue;
+
+                item = tempItem;
+                return true;
+            }
+
+            return false;
+        }
+
         public void LoadProgress(MatchGameProgress progress)
         {
             TileData[][] tilesData = progress.BoardData?.TilesData;
 
             void UpdateContentAction(int x, int y, Color color)
-                => _tiles[x, y].Item.UpdateContent(color).Forget();
+                => _tiles[x, y].Item.UpdateContent(color);
 
             if (tilesData != null)
             {
@@ -203,6 +256,8 @@ namespace _Workspace.CodeBase.GamePlay.Logic
                         UpdateContentAction(j, i, _colorProvider.GetRandomColor());
                 }
             }
+
+            UpdateBoard(GetAllItems()).Forget();
         }
 
 
@@ -219,6 +274,16 @@ namespace _Workspace.CodeBase.GamePlay.Logic
             }
 
             progress.BoardData.TilesData = tilesData;
+        }
+
+        public async UniTask MoveItemsFromPositionAsync(Dictionary<TileItem, float> itemsPositionMap)
+        {
+            List<UniTask> tasks = new List<UniTask>();
+
+            foreach (TileItem item in itemsPositionMap.Keys)
+                tasks.Add(item.MoveFromPositionAsync(itemsPositionMap[item]));
+
+            await UniTask.WhenAll(tasks);
         }
     }
 }

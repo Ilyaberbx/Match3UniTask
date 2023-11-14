@@ -5,6 +5,6 @@ namespace _Workspace.CodeBase.GamePlay.Factory
 {
     public interface IItemsFactory
     {
-        UniTask<TileItem> CreateItem(int x, int y);
+        UniTask<TileItem> CreateItem();
     }
 }

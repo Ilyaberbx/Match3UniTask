@@ -19,12 +19,8 @@ namespace _Workspace.CodeBase.UI.Service.Factory
         public async UniTask<UIRoot> CreateUIRoot()
             => _uiRoot = await _factory.Create<UIRoot>(GamePlayAssetsAddress.UIRoot);
 
-        public async UniTask<MatchView> CreateMatchView(VerticalLayoutGroup container)
-        {
-            MatchView view = await _factory.Create<MatchView>(GamePlayAssetsAddress.MatchView);
-            view.transform.SetParent(container.transform);
-            return view;
-        }
+        public async UniTask<MatchView> CreateMatchView(VerticalLayoutGroup container) 
+            => await _factory.Create<MatchView>(GamePlayAssetsAddress.MatchView,container.transform);
 
         public async UniTask<MatchWindow> CreateMatchWindow() 
             => await _factory.Create<MatchWindow>(GamePlayAssetsAddress.MatchWindow, Vector3.zero, _uiRoot.transform);

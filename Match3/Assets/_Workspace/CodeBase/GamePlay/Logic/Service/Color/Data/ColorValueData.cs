@@ -15,13 +15,13 @@ namespace _Workspace.CodeBase.GamePlay.Logic.Service.Color.Data
             Color = new ColorData(Random.value, Random.value, Random.value);
         }
 
-        public ColorValueData()
-        {
-        }
         public ColorValueData(int value, ColorData colorData)
         {
             Value = value;
             Color = colorData;
         }
+
+        public ColorValueData()
+        { }
     }
 }

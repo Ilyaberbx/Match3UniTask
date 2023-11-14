@@ -1,4 +1,5 @@
 ﻿using _Workspace.CodeBase.GamePlay.Handlers;
+using _Workspace.CodeBase.GamePlay.Logic.Extensions;
 using _Workspace.CodeBase.Service.EventBus;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -9,6 +10,7 @@ namespace _Workspace.CodeBase.GamePlay.Logic
 {
     public class TileItem : MonoBehaviour
     {
+        [SerializeField] private Vector2 _itemAppearPosition = new(0, 10);
         [SerializeField] private Renderer _renderer;
 
         private Color _color;
@@ -20,6 +22,8 @@ namespace _Workspace.CodeBase.GamePlay.Logic
         private int _x;
 
         private bool _selected;
+
+        private Vector3 _cachedScale;
 
         public Color GetColor()
             => _color;
@@ -34,18 +38,16 @@ namespace _Workspace.CodeBase.GamePlay.Logic
         public void Construct(IEventBusService eventBus)
             => _eventBus = eventBus;
 
-        private void OnMouseDown()
-        {
-            Debug.Log(Selected());
-            RaiseClick();
-        }
+        private void Awake()
+            => _cachedScale = transform.localScale;
 
-        public async UniTask UpdateContent(Color color)
+        private void OnMouseDown()
+            => RaiseClick();
+
+        public void UpdateContent(Color color)
         {
             _color = color;
-            Reset();
             UpdateRenderer(color);
-            await Appear();
         }
 
         public void SetPosition(int x, int y)
@@ -64,17 +66,18 @@ namespace _Workspace.CodeBase.GamePlay.Logic
             => _selected;
 
         public async UniTask Dissolve() =>
-            await transform.DOScale(Vector3.zero, 2f)
+            await transform.DOScale(Vector3.zero, 0.5f)
                 .ToUniTask();
 
-        private async UniTask Appear() =>
-            await transform.DOMoveY(10, 1f).SetEase(Ease.OutExpo)
-                .From()
-                .ToUniTask();
-
-        private void Reset()
+        public async UniTask Appear()
         {
-            transform.localScale = Vector3.one;
+            transform.localPosition = Vector3.zero.AddZ(-1);
+            await MoveFromPositionAsync(10);
+        }
+
+        public void Reset()
+        {
+            transform.localScale = _cachedScale;
             Deselect();
         }
 
@@ -86,5 +89,10 @@ namespace _Workspace.CodeBase.GamePlay.Logic
             _eventBus.RaiseEvent<IItemClickedHandler>
                 (handler => handler.HandleTileItemClicked(this));
         }
+
+        public async UniTask MoveFromPositionAsync(float y) =>
+            await transform.DOMoveY(y, 0.5f).SetEase(Ease.OutExpo)
+                .From()
+                .ToUniTask();
     }
 }

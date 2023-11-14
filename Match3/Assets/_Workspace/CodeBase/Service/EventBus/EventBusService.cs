@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using _Workspace.CodeBase.Extensions;
 using _Workspace.CodeBase.Infrastructure.Service.EventBus.Handlers;
-using Extensions;
 using UnityEngine;
 
 namespace _Workspace.CodeBase.Service.EventBus
